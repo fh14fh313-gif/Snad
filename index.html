@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة العوائل والمساعدات الخيرية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                        darkBg: '#0f172a',
+                        darkCard: '#1e293b'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+        body { font-family: 'Cairo', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        html { font-size: 16px; transition: font-size 0.3s; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .glass-effect { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-darkBg text-slate-800 dark:text-slate-100 h-screen flex flex-col overflow-hidden">
+
+    <nav class="bg-gradient-to-r from-primary to-secondary text-white shadow-lg z-10 flex-shrink-0">
+        <div class="max-w-xl mx-auto flex justify-between relative">
+            <button onclick="switchMainTab('main')" id="tab-main" class="flex-1 py-4 text-center font-bold border-b-4 border-white transition-all" aria-label="الرئيسية">الرئيسية</button>
+            <button onclick="switchMainTab('fav')" id="tab-fav" class="flex-1 py-4 text-center font-bold border-b-4 border-transparent text-indigo-200 transition-all" aria-label="المفضلة">المفضلة</button>
+            <button onclick="switchMainTab('settings')" id="tab-settings" class="flex-1 py-4 text-center font-bold border-b-4 border-transparent text-indigo-200 transition-all" aria-label="الإعدادات">الإعدادات</button>
+        </div>
+    </nav>
+
+    <div id="search-container" class="bg-white dark:bg-darkCard p-3 shadow-sm z-10 flex-shrink-0 transition-colors">
+        <div class="max-w-xl mx-auto flex gap-3 items-center">
+            <div class="relative flex-1">
+                <input type="text" id="search-input" onkeyup="renderFamilies()" placeholder="ابحث بالاسم الرباعي..." class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white border-none rounded-2xl py-3 px-10 focus:ring-2 focus:ring-primary outline-none text-sm transition-colors" aria-label="حقل البحث">
+                <i class="fa-solid fa-search absolute right-4 top-3.5 text-slate-400"></i>
+            </div>
+            <button onclick="openFormModal()" class="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white px-5 py-3 rounded-2xl font-bold text-sm shadow-md transition-all flex items-center gap-2 flex-shrink-0" aria-label="إضافة عائلة جديدة">
+                <i class="fa-solid fa-plus"></i> إضافة
+            </button>
+        </div>
+    </div>
+
+    <main class="flex-1 overflow-y-auto p-4 hide-scroll relative">
+        <div id="view-main" class="max-w-xl mx-auto space-y-4">
+            <div id="empty-state" class="hidden flex flex-col items-center justify-center mt-32 text-slate-400">
+                <div class="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                    <i class="fa-solid fa-users text-4xl text-slate-300 dark:text-slate-600"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-500 dark:text-slate-400">لا توجد عوائل مسجلة</h2>
+            </div>
+            <div id="families-list" class="space-y-3 pb-20"></div>
+        </div>
+
+        <div id="view-fav" class="max-w-xl mx-auto space-y-3 hidden pb-20">
+            <div id="fav-list" class="space-y-3"></div>
+        </div>
+
+        <div id="view-settings" class="max-w-xl mx-auto hidden mt-6 space-y-4">
+            <div class="bg-white dark:bg-darkCard p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 transition-colors">
+                <h3 class="font-bold text-primary dark:text-indigo-400 mb-5 flex items-center gap-2">
+                    <i class="fa-solid fa-palette"></i> المظهر والبصريات
+                </h3>
+                
+                <div class="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-700">
+                    <span class="font-bold text-sm">الوضع الليلي</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="dark-mode-toggle" class="sr-only peer" onchange="toggleTheme()" aria-label="تفعيل الوضع الليلي">
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:translate-x-[-100%] rtl:peer-checked:after:-translate-x-full after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
+                    </label>
+                </div>
+
+                <div class="flex justify-between items-center py-3">
+                    <span class="font-bold text-sm">حجم الخط</span>
+                    <select id="font-size-select" onchange="changeFontSize(this.value)" class="bg-slate-100 dark:bg-slate-800 dark:text-white px-4 py-2 rounded-xl text-sm outline-none border-none focus:ring-2 focus:ring-primary" aria-label="تغيير حجم الخط">
+                        <option value="14px">صغير</option>
+                        <option value="16px" selected>متوسط (الافتراضي)</option>
+                        <option value="18px">كبير</option>
+                        <option value="20px">كبير جداً</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="form-modal" class="fixed inset-0 bg-black/60 glass-effect z-50 hidden flex justify-center items-end sm:items-center transition-opacity">
+        <div class="bg-white dark:bg-darkCard w-full sm:max-w-2xl h-[92vh] rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl">
+            <div class="p-4 border-b dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+                <h2 id="form-title" class="text-lg font-bold text-primary dark:text-indigo-400">إضافة عائلة جديدة</h2>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-red-500 bg-slate-200 dark:bg-slate-800 rounded-full w-8 h-8 flex justify-center items-center transition-colors" aria-label="إغلاق"><i class="fa-solid fa-times"></i></button>
+            </div>
+            
+            <div class="flex bg-slate-100 dark:bg-slate-800 border-b dark:border-slate-700 text-sm font-bold text-center">
+                <div id="step-ind-1" class="flex-1 py-3 bg-primary text-white">1. الأساسية</div>
+                <div id="step-ind-2" class="flex-1 py-3 text-slate-500 dark:text-slate-400">2. الأسرة</div>
+                <div id="step-ind-3" class="flex-1 py-3 text-slate-500 dark:text-slate-400">3. المعيشة</div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-5 space-y-4">
+                <input type="hidden" id="f-id">
+                
+                <div id="form-step-1" class="space-y-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <input type="text" id="f-n1" placeholder="الاسم الأول" class="form-input w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary">
+                        <input type="text" id="f-n2" placeholder="اسم الأب" class="form-input w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary">
+                        <input type="text" id="f-n3" placeholder="اسم الجد" class="form-input w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary">
+                        <input type="text" id="f-n4" placeholder="اللقب" class="form-input w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <select id="f-marital" class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary">
+                            <option value="متزوج">متزوج</option>
+                            <option value="أعزب">أعزب</option>
+                            <option value="أرمل">أرمل</option>
+                            <option value="مطلق">مطلق</option>
+                        </select>
+                        <input type="text" id="f-spouse" placeholder="اسم الزوج/الزوجة" class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <input type="number" inputmode="numeric" id="f-nid" placeholder="رقم البطاقة الوطنية" class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary">
+                        <input type="number" inputmode="numeric" id="f-ration" placeholder="رقم البطاقة التموينية" class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary">
+                        <input type="number" inputmode="numeric" id="f-phone1" placeholder="رقم الهاتف" class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary">
+                    </div>
+                </div>
+
+                <div id="form-step-2" class="space-y-4 hidden">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <select id="f-status-type" class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary">
+                            <option value="متعفف">متعفف</option>
+                            <option value="أيتام">أيتام</option>
+                            <option value="أرملة">أرملة</option>
+                            <option value="ذوي إعاقة">ذوي إعاقة</option>
+                        </select>
+                        <input type="number" inputmode="numeric" id="f-fam-size" placeholder="عدد أفراد الأسرة" class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary">
+                    </div>
+                    <textarea id="f-kids-details" placeholder="أسماء وتفاصيل الأبناء..." rows="2" class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary resize-none"></textarea>
+                </div>
+
+                <div id="form-step-3" class="space-y-4 hidden">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <select id="f-house-type" class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary">
+                            <option value="إيجار">إيجار</option>
+                            <option value="ملك">ملك</option>
+                            <option value="عشوائي">عشوائي</option>
+                        </select>
+                        <input type="text" id="f-income-source" placeholder="مصدر الدخل التقريبي" class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary">
+                    </div>
+                    <textarea id="f-address" placeholder="العنوان وأقرب نقطة دالة..." rows="2" class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary resize-none"></textarea>
+                </div>
+            </div>
+
+            <div class="p-4 border-t dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex justify-between">
+                <button type="button" id="btn-prev" onclick="changeStep(-1)" class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold px-6 py-2.5 rounded-xl text-sm hidden transition-colors" aria-label="الخطوة السابقة">السابق</button>
+                <div class="mr-auto flex gap-2">
+                    <button type="button" id="btn-next" onclick="changeStep(1)" class="bg-primary hover:bg-secondary text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-colors" aria-label="الخطوة التالية">التالي</button>
+                    <button type="button" id="btn-save" onclick="saveFamily()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-6 py-2.5 rounded-xl text-sm hidden transition-colors" aria-label="حفظ العائلة">حفظ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="fam-options-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex flex-col justify-end">
+        <div class="bg-white dark:bg-darkCard w-full rounded-t-3xl p-5 shadow-2xl transform transition-transform">
+            <div class="flex justify-between items-center mb-5 border-b dark:border-slate-700 pb-3">
+                <h3 class="font-bold text-lg text-slate-800 dark:text-white">خيارات العائلة</h3>
+                <button onclick="closeModal()" class="text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-full w-8 h-8" aria-label="إغلاق الخيارات"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="space-y-3">
+                <button onclick="toggleFavAction()" class="w-full flex items-center gap-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl text-slate-700 dark:text-slate-200 font-bold transition-colors">
+                    <div class="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-500 flex items-center justify-center text-lg"><i class="fa-solid fa-star"></i></div>
+                    إضافة / إزالة من المفضلة
+                </button>
+                <button onclick="openReportAction()" class="w-full flex items-center gap-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl text-slate-700 dark:text-slate-200 font-bold transition-colors">
+                    <div class="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-500 flex items-center justify-center text-lg"><i class="fa-solid fa-bullhorn"></i></div>
+                    إبلاغ
+                </button>
+                <button onclick="openDeleteAction()" class="w-full flex items-center gap-3 bg-red-50 dark:bg-red-900/20 p-4 rounded-2xl text-red-600 dark:text-red-400 font-bold transition-colors">
+                    <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center text-lg"><i class="fa-solid fa-trash"></i></div>
+                    حذف العائلة
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="details-modal" class="fixed inset-0 bg-black/60 glass-effect z-50 hidden flex flex-col justify-end sm:justify-center items-center">
+        <div class="bg-white dark:bg-darkCard w-full sm:max-w-xl h-[95vh] rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl">
+            <header class="bg-gradient-to-r from-primary to-secondary text-white p-4 flex justify-between items-center relative">
+                <h2 class="text-lg font-bold truncate pr-2 w-3/4" id="details-title"></h2>
+                <button onclick="closeModal()" class="bg-white/20 hover:bg-white/30 text-sm px-4 py-2 rounded-xl font-bold transition-colors" aria-label="رجوع"><i class="fa-solid fa-arrow-right"></i> رجوع</button>
+            </header>
+            
+            <div class="flex bg-slate-50 dark:bg-slate-900 border-b dark:border-slate-700">
+                <button onclick="switchDetailsTab('history')" id="d-tab-history" class="flex-1 py-4 text-primary dark:text-indigo-400 font-bold border-b-2 border-primary dark:border-indigo-400 text-sm transition-colors">سجل المساعدات</button>
+                <button onclick="switchDetailsTab('info')" id="d-tab-info" class="flex-1 py-4 text-slate-500 dark:text-slate-400 font-bold border-b-2 border-transparent text-sm transition-colors">تفاصيل العائلة</button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto bg-slate-100 dark:bg-darkBg p-4">
+                
+                <div id="d-view-history" class="space-y-4">
+                    <div class="flex justify-between items-center bg-white dark:bg-darkCard p-3 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                        <button onclick="changeMonth(-1)" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-bold transition-colors" aria-label="الشهر السابق"><i class="fa-solid fa-chevron-right"></i> السابق</button>
+                        <span id="current-month-display" class="font-bold text-primary dark:text-indigo-400 text-sm" aria-live="polite"></span>
+                        <button id="btn-next-month" onclick="changeMonth(1)" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-bold disabled:opacity-30 transition-colors" aria-label="الشهر التالي">التالي <i class="fa-solid fa-chevron-left"></i></button>
+                    </div>
+                    <div id="aid-content-container" class="space-y-3"></div>
+                    <button onclick="openAddAidModal()" class="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-bold py-4 rounded-2xl text-sm shadow-md transition-all flex items-center justify-center gap-2 mt-4" aria-label="إضافة مساعدة جديدة">
+                        <i class="fa-solid fa-plus"></i> إضافة مساعدة
+                    </button>
+                </div>
+
+                <div id="d-view-info" class="hidden flex flex-col h-full">
+                    <div class="space-y-3 flex-1">
+                        <div class="bg-white dark:bg-darkCard p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block mb-2">رقم البطاقة الوطنية</span>
+                            <div id="d-nid" class="font-bold text-slate-800 dark:text-slate-100"></div>
+                        </div>
+                        <div class="bg-white dark:bg-darkCard p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block mb-2">التصنيف</span>
+                            <div id="d-status" class="font-bold text-primary dark:text-indigo-400"></div>
+                        </div>
+                        <div class="bg-white dark:bg-darkCard p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block mb-2">العنوان</span>
+                            <div id="d-address" class="font-bold text-slate-800 dark:text-slate-100 leading-relaxed"></div>
+                        </div>
+                    </div>
+                    <button onclick="editCurrentFamily()" class="w-full bg-slate-800 dark:bg-slate-700 text-white font-bold py-4 rounded-2xl text-sm shadow-md transition-all mt-4 flex items-center justify-center gap-2" aria-label="تعديل بيانات العائلة">
+                        <i class="fa-solid fa-pen"></i> تعديل بيانات العائلة
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="aid-modal" class="fixed inset-0 bg-black/60 glass-effect z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-darkCard w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4 border border-slate-100 dark:border-slate-800">
+            <h3 id="aid-modal-title" class="text-lg font-bold text-primary dark:text-indigo-400 mb-4">إضافة مساعدة</h3>
+            <input type="hidden" id="aid-id-input">
+            <input type="text" id="aid-volunteer" placeholder="اسم المتطوع" class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-4 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary transition-colors">
+            <input type="text" id="aid-type" placeholder="نوع المساعدة" class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white p-4 rounded-xl outline-none text-sm focus:ring-2 focus:ring-primary transition-colors">
+            <div class="flex gap-3 pt-2">
+                <button onclick="saveAid()" class="flex-1 bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 rounded-xl text-sm shadow-md">حفظ</button>
+                <button onclick="closeModal()" class="flex-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold py-3 rounded-xl text-sm transition-colors">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="aid-options-modal" class="fixed inset-0 bg-black/50 z-[60] hidden flex flex-col justify-end">
+        <div class="bg-white dark:bg-darkCard w-full rounded-t-3xl p-5 shadow-2xl transform transition-transform">
+            <div class="flex justify-between items-center mb-5 border-b dark:border-slate-700 pb-3">
+                <h3 class="font-bold text-lg text-slate-800 dark:text-white">خيارات المساعدة</h3>
+                <button onclick="closeModal()" class="text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-full w-8 h-8" aria-label="إغلاق"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="space-y-3">
+                <button onclick="editAidAction()" class="w-full flex items-center gap-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl text-slate-700 dark:text-slate-200 font-bold transition-colors">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-500 flex items-center justify-center text-lg"><i class="fa-solid fa-pen"></i></div>
+                    تعديل المساعدة
+                </button>
+                <button onclick="deleteAidAction()" class="w-full flex items-center gap-3 bg-red-50 dark:bg-red-900/20 p-4 rounded-2xl text-red-600 dark:text-red-400 font-bold transition-colors">
+                    <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center text-lg"><i class="fa-solid fa-trash"></i></div>
+                    حذف المساعدة
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="action-modal" class="fixed inset-0 bg-black/60 glass-effect z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-darkCard w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-slate-100 dark:border-slate-800">
+            <h3 id="action-title" class="text-lg font-bold text-slate-800 dark:text-white mb-2"></h3>
+            <textarea id="action-reason" rows="3" class="w-full bg-slate-100 dark:bg-slate-800 dark:text-white border-none rounded-xl p-4 outline-none focus:ring-2 focus:ring-primary resize-none mb-4 text-sm mt-3 transition-colors" placeholder="اكتب السبب أو الملاحظة هنا..."></textarea>
+            <input type="hidden" id="action-type">
+            <div class="flex gap-3">
+                <button onclick="submitAction()" class="flex-1 bg-primary hover:bg-secondary text-white font-bold py-3 rounded-xl text-sm shadow-md transition-colors">تأكيد</button>
+                <button onclick="closeModal()" class="flex-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold py-3 rounded-xl text-sm transition-colors">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let families = [];
+        let currentStep = 1;
+        let activeFamilyId = null;
+        let activeAidId = null;
+        let currentYear = 2026;
+        let currentMonth = 7;
+        const monthsNames = ["", "كانون الثاني", "شباط", "آذار", "نيسان", "أيار", "حزيران", "تموز", "آب", "أيلول", "تشرين الأول", "تشرين الثاني", "كانون الأول"];
+        let isDark = false;
+
+        // --- نظام التوجيه وزر الرجوع (Hash Routing) ---
+        window.addEventListener('hashchange', function() {
+            const hash = window.location.hash;
+            const modals = ['#form-modal', '#fam-options-modal', '#details-modal', '#aid-modal', '#aid-options-modal', '#action-modal'];
+            
+            // إخفاء جميع النوافذ المنبثقة أولاً
+            modals.forEach(id => {
+                const el = document.querySelector(id);
+                if(el) el.classList.add('hidden');
+            });
+
+            // إظهار النافذة الحالية بناءً على الرابط
+            if(modals.includes(hash)) {
+                document.querySelector(hash).classList.remove('hidden');
+            }
+        });
+
+        function closeModal() {
+            window.history.back();
+        }
+        // ----------------------------------------------
+
+        function toggleTheme() {
+            isDark = document.getElementById('dark-mode-toggle').checked;
+            if(isDark) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        function changeFontSize(size) {
+            document.documentElement.style.fontSize = size;
+        }
+
+        function switchMainTab(tab) {
+            document.getElementById('view-main').classList.add('hidden');
+            document.getElementById('view-fav').classList.add('hidden');
+            document.getElementById('view-settings').classList.add('hidden');
+            document.getElementById('tab-main').className = "flex-1 py-4 text-center font-bold border-b-4 border-transparent text-indigo-200 transition-all";
+            document.getElementById('tab-fav').className = "flex-1 py-4 text-center font-bold border-b-4 border-transparent text-indigo-200 transition-all";
+            document.getElementById('tab-settings').className = "flex-1 py-4 text-center font-bold border-b-4 border-transparent text-indigo-200 transition-all";
+            
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            if(tab === 'main') {
+                document.getElementById('tab-main').className = "flex-1 py-4 text-center font-bold border-b-4 border-white transition-all";
+                document.getElementById('search-container').classList.remove('hidden');
+                renderFamilies();
+            } else if(tab === 'fav') {
+                document.getElementById('tab-fav').className = "flex-1 py-4 text-center font-bold border-b-4 border-white transition-all";
+                document.getElementById('search-container').classList.add('hidden');
+                renderFamilies();
+            } else {
+                document.getElementById('tab-settings').className = "flex-1 py-4 text-center font-bold border-b-4 border-white transition-all";
+                document.getElementById('search-container').classList.add('hidden');
+            }
+        }
+
+        function renderFamilies() {
+            const listDiv = document.getElementById('families-list');
+            const favDiv = document.getElementById('fav-list');
+            const emptyState = document.getElementById('empty-state');
+            const query = document.getElementById('search-input') ? document.getElementById('search-input').value.toLowerCase() : '';
+
+            listDiv.innerHTML = '';
+            favDiv.innerHTML = '';
+
+            let filtered = families.filter(f => !f.deleted && f.name.toLowerCase().includes(query));
+            let favs = families.filter(f => f.fav && !f.deleted);
+
+            if(families.filter(f => !f.deleted).length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            filtered.forEach(f => listDiv.innerHTML += createCard(f));
+            favs.forEach(f => favDiv.innerHTML += createCard(f));
+
+            if(favs.length === 0 && !document.getElementById('view-fav').classList.contains('hidden')) {
+                favDiv.innerHTML = '<div class="text-center mt-20 text-slate-400"><i class="fa-solid fa-star text-5xl mb-4 text-slate-200 dark:text-slate-700"></i><p class="font-bold">لا توجد عوائل في المفضلة</p></div>';
+            }
+        }
+
+        function createCard(f) {
+            const favBadge = f.fav ? '<i class="fa-solid fa-star text-yellow-400 absolute top-5 right-4 text-xs"></i>' : '';
+            const pendingTag = f.pendingDelete ? '<span class="bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 text-[10px] px-2 py-1 rounded-full font-bold ml-2">قيد الحذف</span>' : '';
+            return `
+                <div class="bg-white dark:bg-darkCard rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative flex items-center p-2 pr-4 transition-colors">
+                    ${favBadge}
+                    <div class="flex-1 py-3 cursor-pointer pl-2 ${f.fav ? 'pr-5' : ''}" onclick="openDetails('${f.id}')">
+                        <h3 class="font-bold text-slate-800 dark:text-white flex items-center">${f.name} ${pendingTag}</h3>
+                    </div>
+                    <button onclick="openFamOptions('${f.id}')" aria-label="خيارات العائلة" class="w-12 h-12 flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+                        <i class="fa-solid fa-ellipsis-vertical text-lg"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        function openFamOptions(id) {
+            activeFamilyId = id;
+            window.location.hash = 'fam-options-modal';
+        }
+
+        function toggleFavAction() {
+            const f = families.find(x => x.id === activeFamilyId);
+            if(f) f.fav = !f.fav;
+            closeModal();
+            renderFamilies();
+        }
+
+        function openReportAction() {
+            document.getElementById('action-type').value = 'report';
+            document.getElementById('action-reason').value = '';
+            document.getElementById('action-title').innerText = 'إبلاغ عن العائلة';
+            window.location.replace('#action-modal'); 
+        }
+
+        function openDeleteAction() {
+            document.getElementById('action-type').value = 'delete';
+            document.getElementById('action-reason').value = '';
+            document.getElementById('action-title').innerText = 'تأكيد طلب الحذف';
+            window.location.replace('#action-modal');
+        }
+
+        function submitAction() {
+            const type = document.getElementById('action-type').value;
+            const f = families.find(x => x.id === activeFamilyId);
+            if(f && type === 'delete') f.pendingDelete = true;
+            closeModal();
+            renderFamilies();
+        }
+
+        function openFormModal() {
+            currentStep = 1;
+            updateStepView();
+            document.getElementById('f-id').value = '';
+            ['f-n1','f-n2','f-n3','f-n4','f-spouse','f-nid','f-ration','f-phone1','f-fam-size','f-kids-details','f-income-source','f-address'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('form-title').innerText = 'إضافة عائلة جديدة';
+            window.location.hash = 'form-modal';
+        }
+
+        function changeStep(dir) {
+            currentStep += dir;
+            if(currentStep < 1) currentStep = 1;
+            if(currentStep > 3) currentStep = 3;
+            updateStepView();
+        }
+
+        function updateStepView() {
+            document.getElementById('form-step-1').classList.add('hidden');
+            document.getElementById('form-step-2').classList.add('hidden');
+            document.getElementById('form-step-3').classList.add('hidden');
+            document.getElementById(`form-step-${currentStep}`).classList.remove('hidden');
+
+            document.getElementById('step-ind-1').className = "flex-1 py-3 text-sm transition-colors " + (currentStep === 1 ? "bg-primary text-white font-bold" : "text-slate-500 dark:text-slate-400");
+            document.getElementById('step-ind-2').className = "flex-1 py-3 text-sm transition-colors " + (currentStep === 2 ? "bg-primary text-white font-bold" : "text-slate-500 dark:text-slate-400");
+            document.getElementById('step-ind-3').className = "flex-1 py-3 text-sm transition-colors " + (currentStep === 3 ? "bg-primary text-white font-bold" : "text-slate-500 dark:text-slate-400");
+
+            document.getElementById('btn-prev').style.display = currentStep === 1 ? 'none' : 'block';
+            document.getElementById('btn-next').style.display = currentStep === 3 ? 'none' : 'block';
+            document.getElementById('btn-save').style.display = currentStep === 3 ? 'block' : 'none';
+        }
+
+        function saveFamily() {
+            const id = document.getElementById('f-id').value;
+            const name = `${document.getElementById('f-n1').value} ${document.getElementById('f-n2').value} ${document.getElementById('f-n3').value} ${document.getElementById('f-n4').value}`.trim();
+            const nid = document.getElementById('f-nid').value;
+            if(!name || !nid) return;
+
+            if(id) {
+                const idx = families.findIndex(x => x.id === id);
+                if(idx > -1) {
+                    families[idx].name = name;
+                    families[idx].nid = nid;
+                    families[idx].status = document.getElementById('f-status-type').value;
+                    families[idx].address = document.getElementById('f-address').value;
+                }
+            } else {
+                families.unshift({
+                    id: Date.now().toString(),
+                    name, nid,
+                    status: document.getElementById('f-status-type').value,
+                    address: document.getElementById('f-address').value,
+                    fav: false, pendingDelete: false, deleted: false,
+                    aidRecords: {}
+                });
+            }
+            
+            closeModal(); // يغلق نافذة الإضافة فوراً وبدون أي نوافذ تأكيد
+            
+            setTimeout(() => {
+                if(window.location.hash === '#details-modal') {
+                    openDetails(id || families[0].id);
+                }
+            }, 50);
+            
+            renderFamilies();
+        }
+
+        function editCurrentFamily() {
+            const f = families.find(x => x.id === activeFamilyId);
+            if(!f) return;
+            const parts = f.name.split(' ');
+            document.getElementById('f-id').value = f.id;
+            document.getElementById('f-n1').value = parts[0] || '';
+            document.getElementById('f-n2').value = parts[1] || '';
+            document.getElementById('f-n3').value = parts[2] || '';
+            document.getElementById('f-n4').value = parts[3] || '';
+            document.getElementById('f-nid').value = f.nid;
+            document.getElementById('f-status-type').value = f.status || 'متعفف';
+            document.getElementById('f-address').value = f.address || '';
+            document.getElementById('form-title').innerText = 'تعديل بيانات العائلة';
+            currentStep = 1;
+            updateStepView();
+            window.location.hash = 'form-modal';
+        }
+
+        function openDetails(id) {
+            activeFamilyId = id;
+            const f = families.find(x => x.id === id);
+            if(!f) return;
+            document.getElementById('details-title').innerText = f.name;
+            document.getElementById('d-nid').innerText = f.nid;
+            document.getElementById('d-status').innerText = f.status;
+            document.getElementById('d-address').innerText = f.address || '-';
+            switchDetailsTab('history');
+            window.location.hash = 'details-modal';
+        }
+
+        function switchDetailsTab(tab) {
+            if(tab === 'info') {
+                document.getElementById('d-view-info').classList.remove('hidden');
+                document.getElementById('d-view-history').classList.add('hidden');
+                document.getElementById('d-tab-info').className = "flex-1 py-4 text-primary dark:text-indigo-400 font-bold border-b-2 border-primary dark:border-indigo-400 text-sm transition-colors";
+                document.getElementById('d-tab-history').className = "flex-1 py-4 text-slate-500 dark:text-slate-400 font-bold border-b-2 border-transparent text-sm transition-colors";
+            } else {
+                document.getElementById('d-view-info').classList.add('hidden');
+                document.getElementById('d-view-history').classList.remove('hidden');
+                document.getElementById('d-tab-history').className = "flex-1 py-4 text-primary dark:text-indigo-400 font-bold border-b-2 border-primary dark:border-indigo-400 text-sm transition-colors";
+                document.getElementById('d-tab-info').className = "flex-1 py-4 text-slate-500 dark:text-slate-400 font-bold border-b-2 border-transparent text-sm transition-colors";
+                document.getElementById('current-month-display').innerText = `${monthsNames[currentMonth]} ${currentYear}`;
+                renderAidTable();
+            }
+        }
+
+        function changeMonth(dir) {
+            currentMonth += dir;
+            if(currentMonth > 12) { currentMonth = 1; currentYear++; }
+            else if(currentMonth < 1) { currentMonth = 12; currentYear--; }
+
+            const nextBtn = document.getElementById('btn-next-month');
+            if(currentYear >= 2026 && currentMonth >= 7) {
+                currentYear = 2026; currentMonth = 7;
+                nextBtn.disabled = true;
+            } else {
+                nextBtn.disabled = false;
+            }
+            document.getElementById('current-month-display').innerText = `${monthsNames[currentMonth]} ${currentYear}`;
+            renderAidTable();
+        }
+
+        function renderAidTable() {
+            const container = document.getElementById('aid-content-container');
+            const f = families.find(x => x.id === activeFamilyId);
+            if(!f) return;
+            const key = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
+            const records = f.aidRecords[key] || [];
+
+            if(records.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 bg-white dark:bg-darkCard rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 text-slate-400 transition-colors">
+                        <div class="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fa-solid fa-box-open text-3xl text-slate-300 dark:text-slate-600"></i>
+                        </div>
+                        <p class="text-sm font-bold text-slate-500 dark:text-slate-400">لا توجد أية مساعدة في هذا الشهر</p>
+                    </div>
+                `;
+            } else {
+                let html = '';
+                records.forEach(r => {
+                    html += `
+                        <div class="bg-white dark:bg-darkCard p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex justify-between items-center transition-colors">
+                            <div>
+                                <div class="font-bold text-slate-800 dark:text-white mb-1">${r.type}</div>
+                                <div class="text-xs text-slate-500 dark:text-slate-400"><i class="fa-solid fa-user-circle mr-1"></i> ${r.volunteer} &nbsp;&nbsp;|&nbsp;&nbsp; ${r.date}</div>
+                            </div>
+                            <button onclick="openAidOptions('${r.id}')" aria-label="خيارات المساعدة" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            }
+        }
+
+        function openAddAidModal(aidId = null) {
+            activeAidId = aidId;
+            document.getElementById('aid-id-input').value = aidId || '';
+            if(aidId) {
+                document.getElementById('aid-modal-title').innerText = 'تعديل المساعدة';
+                const f = families.find(x => x.id === activeFamilyId);
+                const key = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
+                const aid = f.aidRecords[key].find(x => x.id === aidId);
+                if(aid) {
+                    document.getElementById('aid-volunteer').value = aid.volunteer;
+                    document.getElementById('aid-type').value = aid.type;
+                }
+            } else {
+                document.getElementById('aid-modal-title').innerText = 'إضافة مساعدة';
+                document.getElementById('aid-volunteer').value = '';
+                document.getElementById('aid-type').value = '';
+            }
+            window.location.hash = 'aid-modal';
+        }
+
+        function saveAid() {
+            const volunteer = document.getElementById('aid-volunteer').value;
+            const type = document.getElementById('aid-type').value;
+            const aidId = document.getElementById('aid-id-input').value;
+            if(!volunteer || !type) return;
+
+            const f = families.find(x => x.id === activeFamilyId);
+            if(f) {
+                const key = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
+                if(!f.aidRecords[key]) f.aidRecords[key] = [];
+                
+                if(aidId) {
+                    const aidIndex = f.aidRecords[key].findIndex(x => x.id === aidId);
+                    if(aidIndex > -1) {
+                        f.aidRecords[key][aidIndex].volunteer = volunteer;
+                        f.aidRecords[key][aidIndex].type = type;
+                    }
+                } else {
+                    f.aidRecords[key].push({
+                        id: 'aid_' + Date.now(),
+                        date: new Date().toISOString().split('T')[0].replaceAll('-', '/'),
+                        volunteer, type
+                    });
+                }
+            }
+            closeModal(); // إغلاق فوري للتأكيد
+            renderAidTable();
+        }
+
+        function openAidOptions(aidId) {
+            activeAidId = aidId;
+            window.location.hash = 'aid-options-modal';
+        }
+
+        function editAidAction() {
+            window.location.replace('#aid-modal');
+            openAddAidModal(activeAidId);
+        }
+
+        function deleteAidAction() {
+            const f = families.find(x => x.id === activeFamilyId);
+            if(f) {
+                const key = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
+                if(f.aidRecords[key]) {
+                    f.aidRecords[key] = f.aidRecords[key].filter(x => x.id !== activeAidId);
+                }
+            }
+            closeModal(); // تنفيذ الحذف والإغلاق المباشر بدون رسالة
+            renderAidTable();
+        }
+    </script>
+</body>
+</html>
