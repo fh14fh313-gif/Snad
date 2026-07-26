@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المساعدات</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+        body { font-family: 'Cairo', sans-serif; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <nav class="bg-emerald-700 text-white shadow-md z-10 flex-shrink-0">
+        <div class="max-w-md mx-auto flex justify-between">
+            <button onclick="switchMainTab('main')" id="tab-main" class="flex-1 py-4 text-center font-bold border-b-4 border-white transition">الرئيسية</button>
+            <button onclick="switchMainTab('fav')" id="tab-fav" class="flex-1 py-4 text-center font-bold border-b-4 border-transparent text-emerald-200 transition">المفضلة</button>
+            <button onclick="switchMainTab('settings')" id="tab-settings" class="flex-1 py-4 text-center font-bold border-b-4 border-transparent text-emerald-200 transition">الإعدادات</button>
+        </div>
+    </nav>
+
+    <div id="search-container" class="bg-white p-3 shadow-sm z-10 flex-shrink-0">
+        <div class="relative max-w-md mx-auto">
+            <input type="text" id="search-input" onkeyup="renderFamilies()" placeholder="ابحث بالاسم أو رقم البطاقة الوطنية..." class="w-full bg-gray-100 border-none rounded-xl py-3 px-10 focus:ring-2 focus:ring-emerald-500 outline-none">
+            <i class="fa-solid fa-search absolute right-4 top-3.5 text-gray-400"></i>
+        </div>
+    </div>
+
+    <main class="flex-1 overflow-y-auto p-4 hide-scroll relative">
+        <div id="view-main" class="max-w-md mx-auto space-y-4">
+            <div id="empty-state" class="hidden flex flex-col items-center justify-center mt-32 text-gray-400">
+                <i class="fa-solid fa-folder-open text-6xl mb-4 text-gray-300"></i>
+                <h2 class="text-xl font-bold text-gray-500">لم يتم إضافة أي عائلة بعد</h2>
+                <p class="text-sm mt-2">اضغط على زر الإضافة للبدء وتسجيل البيانات</p>
+            </div>
+            <div id="families-list" class="space-y-4 pb-20"></div>
+        </div>
+
+        <div id="view-fav" class="max-w-md mx-auto space-y-4 hidden pb-20">
+            <div id="fav-list" class="space-y-4"></div>
+        </div>
+
+        <div id="view-settings" class="max-w-md mx-auto hidden mt-10">
+            <div class="bg-white p-6 rounded-2xl shadow-sm text-center">
+                <i class="fa-solid fa-cog text-4xl text-gray-300 mb-3"></i>
+                <h3 class="text-lg font-bold text-gray-500">الإعدادات قيد التطوير</h3>
+            </div>
+        </div>
+    </main>
+
+    <button onclick="openFormModal()" class="fixed bottom-6 left-6 bg-emerald-600 hover:bg-emerald-700 text-white w-14 h-14 rounded-full shadow-lg shadow-emerald-600/40 flex justify-center items-center text-2xl transition transform hover:scale-105 z-20">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+
+    <div id="form-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex flex-col justify-end sm:justify-center items-center">
+        <div class="bg-white w-full sm:max-w-md h-[90vh] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h2 id="form-title" class="text-lg font-bold text-emerald-800">إضافة عائلة جديدة</h2>
+                <button onclick="closeFormModal()" class="text-gray-400 hover:text-red-500 text-xl w-8 h-8 flex justify-center items-center"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-5 space-y-4">
+                <input type="hidden" id="f-id">
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" id="f-name1" placeholder="الاسم الأول" class="bg-gray-100 p-3 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500">
+                    <input type="text" id="f-name2" placeholder="اسم الأب" class="bg-gray-100 p-3 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500">
+                    <input type="text" id="f-name3" placeholder="اسم الجد" class="bg-gray-100 p-3 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500">
+                    <input type="text" id="f-name4" placeholder="اللقب" class="bg-gray-100 p-3 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <input type="number" id="f-nid" placeholder="رقم البطاقة الوطنية" class="w-full bg-gray-100 p-3 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500">
+                <input type="number" id="f-phone" placeholder="رقم الهاتف" class="w-full bg-gray-100 p-3 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500">
+                <select id="f-status" class="w-full bg-gray-100 p-3 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500">
+                    <option value="متعفف">متعفف</option>
+                    <option value="أيتام">أيتام</option>
+                    <option value="أرملة">أرملة</option>
+                    <option value="ذوي إعاقة">ذوي إعاقة</option>
+                </select>
+                <input type="text" id="f-address" placeholder="العنوان وأقرب نقطة دالة" class="w-full bg-gray-100 p-3 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <div class="p-4 border-t bg-gray-50">
+                <button onclick="saveFamily()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-md hover:bg-emerald-700">حفظ البيانات</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="details-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex flex-col justify-end sm:justify-center items-center">
+        <div class="bg-white w-full sm:max-w-md h-[95vh] sm:h-[90vh] rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden">
+            <header class="bg-emerald-700 text-white p-4 flex justify-between items-center">
+                <h2 class="text-lg font-bold truncate pr-2" id="details-title"></h2>
+                <button onclick="closeDetailsModal()" class="bg-emerald-800 text-sm px-3 py-1.5 rounded-lg"><i class="fa-solid fa-arrow-right"></i> رجوع</button>
+            </header>
+            <div class="flex border-b bg-gray-50">
+                <button onclick="switchDetailsTab('info')" id="d-tab-info" class="flex-1 py-3 text-emerald-700 font-bold border-b-2 border-emerald-600">التفاصيل</button>
+                <button onclick="switchDetailsTab('history')" id="d-tab-history" class="flex-1 py-3 text-gray-500 font-bold border-b-2 border-transparent">المساعدات</button>
+            </div>
+            <div class="flex-1 overflow-y-auto bg-gray-100">
+                <div id="d-view-info" class="p-4 space-y-3">
+                    <div class="bg-white p-4 rounded-xl shadow-sm">
+                        <span class="text-xs text-gray-400 block mb-1">الاسم الكامل</span>
+                        <div id="d-fullname" class="font-bold text-gray-800"></div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-xs text-gray-400 block mb-1">رقم البطاقة</span>
+                            <div id="d-nid" class="font-bold text-gray-800"></div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-400 block mb-1">الهاتف</span>
+                            <div id="d-phone" class="font-bold text-gray-800"></div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-400 block mb-1">التصنيف</span>
+                            <div id="d-status" class="font-bold text-gray-800"></div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm">
+                        <span class="text-xs text-gray-400 block mb-1">العنوان</span>
+                        <div id="d-address" class="font-bold text-gray-800"></div>
+                    </div>
+                </div>
+                <div id="d-view-history" class="p-4 hidden">
+                    <div class="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm mb-4">
+                        <button class="bg-gray-100 px-3 py-1 rounded text-sm font-bold"><i class="fa-solid fa-chevron-right"></i></button>
+                        <span class="font-bold text-emerald-800">تموز 2026</span>
+                        <button class="bg-gray-100 px-3 py-1 rounded text-sm font-bold opacity-50" disabled><i class="fa-solid fa-chevron-left"></i></button>
+                    </div>
+                    <div class="text-center py-10 bg-white rounded-xl shadow-sm text-gray-400">
+                        <i class="fa-solid fa-box-open text-4xl mb-3"></i>
+                        <p>لا توجد مساعدات في هذا الشهر</p>
+                    </div>
+                    <button class="w-full mt-4 bg-emerald-100 text-emerald-800 font-bold py-3 rounded-xl border border-emerald-200"><i class="fa-solid fa-plus ml-2"></i>إضافة مساعدة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="action-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-xl">
+            <h3 id="action-title" class="text-lg font-bold text-gray-800 mb-2"></h3>
+            <p id="action-desc" class="text-sm text-gray-500 mb-4"></p>
+            <textarea id="action-reason" rows="3" class="w-full bg-gray-50 border rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-500 resize-none mb-4" placeholder="اكتب السبب هنا..."></textarea>
+            <input type="hidden" id="action-type">
+            <input type="hidden" id="action-id">
+            <div class="flex gap-3">
+                <button onclick="submitAction()" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-xl">تأكيد وإرسال</button>
+                <button onclick="closeActionModal()" class="flex-1 bg-gray-200 text-gray-700 font-bold py-2 rounded-xl">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let families = [];
+        let currentTab = 'main';
+
+        function switchMainTab(tab) {
+            currentTab = tab;
+            document.getElementById('view-main').classList.add('hidden');
+            document.getElementById('view-fav').classList.add('hidden');
+            document.getElementById('view-settings').classList.add('hidden');
+            document.getElementById('tab-main').className = "flex-1 py-4 text-center font-bold border-b-4 border-transparent text-emerald-200 transition";
+            document.getElementById('tab-fav').className = "flex-1 py-4 text-center font-bold border-b-4 border-transparent text-emerald-200 transition";
+            document.getElementById('tab-settings').className = "flex-1 py-4 text-center font-bold border-b-4 border-transparent text-emerald-200 transition";
+            
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            if(tab === 'main') {
+                document.getElementById('tab-main').className = "flex-1 py-4 text-center font-bold border-b-4 border-white transition";
+                document.getElementById('search-container').classList.remove('hidden');
+            } else if(tab === 'fav') {
+                document.getElementById('tab-fav').className = "flex-1 py-4 text-center font-bold border-b-4 border-white transition";
+                document.getElementById('search-container').classList.add('hidden');
+            } else {
+                document.getElementById('tab-settings').className = "flex-1 py-4 text-center font-bold border-b-4 border-white transition";
+                document.getElementById('search-container').classList.add('hidden');
+            }
+            renderFamilies();
+        }
+
+        function renderFamilies() {
+            const listDiv = document.getElementById('families-list');
+            const favDiv = document.getElementById('fav-list');
+            const emptyState = document.getElementById('empty-state');
+            const query = document.getElementById('search-input').value.toLowerCase();
+
+            listDiv.innerHTML = '';
+            favDiv.innerHTML = '';
+
+            let filtered = families.filter(f => !f.deleted && (f.name.toLowerCase().includes(query) || f.nid.includes(query)));
+            let favs = families.filter(f => f.fav && !f.deleted);
+
+            if(families.filter(f => !f.deleted).length === 0 && query === '') {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            filtered.forEach(f => listDiv.innerHTML += createCard(f));
+            favs.forEach(f => favDiv.innerHTML += createCard(f));
+
+            if(favs.length === 0) {
+                favDiv.innerHTML = '<div class="text-center mt-20 text-gray-400"><i class="fa-solid fa-star text-4xl mb-3"></i><p>لا توجد عوائل في المفضلة</p></div>';
+            }
+        }
+
+        function createCard(f) {
+            const pendingTag = f.pendingDelete ? '<span class="bg-red-100 text-red-600 text-xs px-2 py-1 rounded font-bold absolute top-3 left-3">قيد الحذف</span>' : '';
+            const favIcon = f.fav ? 'fa-solid fa-star text-yellow-500' : 'fa-regular fa-star text-gray-500';
+            return `
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
+                    ${pendingTag}
+                    <div class="p-4 border-b border-gray-50">
+                        <h3 class="font-bold text-emerald-900 text-lg mb-1">${f.name}</h3>
+                        <div class="text-sm text-gray-500 space-y-1">
+                            <p><i class="fa-solid fa-id-card w-5 text-center text-gray-400"></i> ${f.nid}</p>
+                            <p><i class="fa-solid fa-tag w-5 text-center text-gray-400"></i> ${f.status}</p>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 flex justify-between px-2 py-2">
+                        <button onclick="openDetails('${f.id}')" class="flex-1 py-2 text-emerald-700 hover:bg-gray-200 rounded-lg transition"><i class="fa-solid fa-eye"></i></button>
+                        <button onclick="editFamily('${f.id}')" class="flex-1 py-2 text-blue-600 hover:bg-gray-200 rounded-lg transition"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="toggleFav('${f.id}')" class="flex-1 py-2 hover:bg-gray-200 rounded-lg transition"><i class="${favIcon}"></i></button>
+                        <button onclick="openAction('${f.id}', 'report')" class="flex-1 py-2 text-orange-500 hover:bg-gray-200 rounded-lg transition"><i class="fa-solid fa-bullhorn"></i></button>
+                        <button onclick="openAction('${f.id}', 'delete')" class="flex-1 py-2 text-red-500 hover:bg-gray-200 rounded-lg transition"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openFormModal() {
+            document.getElementById('f-id').value = '';
+            document.getElementById('f-name1').value = '';
+            document.getElementById('f-name2').value = '';
+            document.getElementById('f-name3').value = '';
+            document.getElementById('f-name4').value = '';
+            document.getElementById('f-nid').value = '';
+            document.getElementById('f-phone').value = '';
+            document.getElementById('f-address').value = '';
+            document.getElementById('f-status').value = 'متعفف';
+            document.getElementById('form-title').innerText = 'إضافة عائلة جديدة';
+            document.getElementById('form-modal').classList.remove('hidden');
+        }
+
+        function closeFormModal() {
+            document.getElementById('form-modal').classList.add('hidden');
+        }
+
+        function saveFamily() {
+            const id = document.getElementById('f-id').value;
+            const name = `${document.getElementById('f-name1').value} ${document.getElementById('f-name2').value} ${document.getElementById('f-name3').value} ${document.getElementById('f-name4').value}`.trim();
+            const nid = document.getElementById('f-nid').value;
+            if(!name || !nid) return;
+
+            if(id) {
+                const idx = families.findIndex(x => x.id === id);
+                if(idx > -1) {
+                    families[idx].name = name;
+                    families[idx].nid = nid;
+                    families[idx].phone = document.getElementById('f-phone').value;
+                    families[idx].status = document.getElementById('f-status').value;
+                    families[idx].address = document.getElementById('f-address').value;
+                }
+            } else {
+                const exists = families.find(x => x.nid === nid);
+                if(exists) { alert('رقم البطاقة مسجل مسبقاً!'); return; }
+                families.push({
+                    id: Date.now().toString(),
+                    name, nid, 
+                    phone: document.getElementById('f-phone').value,
+                    status: document.getElementById('f-status').value,
+                    address: document.getElementById('f-address').value,
+                    fav: false, pendingDelete: false, deleted: false
+                });
+            }
+            closeFormModal();
+            renderFamilies();
+        }
+
+        function editFamily(id) {
+            const f = families.find(x => x.id === id);
+            if(!f) return;
+            const parts = f.name.split(' ');
+            document.getElementById('f-id').value = f.id;
+            document.getElementById('f-name1').value = parts[0] || '';
+            document.getElementById('f-name2').value = parts[1] || '';
+            document.getElementById('f-name3').value = parts[2] || '';
+            document.getElementById('f-name4').value = parts[3] || '';
+            document.getElementById('f-nid').value = f.nid;
+            document.getElementById('f-phone').value = f.phone;
+            document.getElementById('f-address').value = f.address;
+            document.getElementById('f-status').value = f.status;
+            document.getElementById('form-title').innerText = 'تعديل بيانات العائلة';
+            document.getElementById('form-modal').classList.remove('hidden');
+        }
+
+        function toggleFav(id) {
+            const f = families.find(x => x.id === id);
+            if(f) f.fav = !f.fav;
+            renderFamilies();
+        }
+
+        function openAction(id, type) {
+            document.getElementById('action-id').value = id;
+            document.getElementById('action-type').value = type;
+            document.getElementById('action-reason').value = '';
+            
+            if(type === 'delete') {
+                document.getElementById('action-title').innerText = 'طلب حذف العائلة';
+                document.getElementById('action-desc').innerText = 'يرجى كتابة سبب الحذف وسيتم إرساله للأدمن للموافقة.';
+            } else {
+                document.getElementById('action-title').innerText = 'إبلاغ الأدمن';
+                document.getElementById('action-desc').innerText = 'اكتب ملاحظتك أو بلاغك بخصوص هذه العائلة.';
+            }
+            document.getElementById('action-modal').classList.remove('hidden');
+        }
+
+        function closeActionModal() {
+            document.getElementById('action-modal').classList.add('hidden');
+        }
+
+        function submitAction() {
+            const id = document.getElementById('action-id').value;
+            const type = document.getElementById('action-type').value;
+            const f = families.find(x => x.id === id);
+            if(f && type === 'delete') f.pendingDelete = true;
+            closeActionModal();
+            renderFamilies();
+        }
+
+        function openDetails(id) {
+            const f = families.find(x => x.id === id);
+            if(!f) return;
+            document.getElementById('details-title').innerText = f.name;
+            document.getElementById('d-fullname').innerText = f.name;
+            document.getElementById('d-nid').innerText = f.nid;
+            document.getElementById('d-phone').innerText = f.phone || '-';
+            document.getElementById('d-status').innerText = f.status;
+            document.getElementById('d-address').innerText = f.address || '-';
+            switchDetailsTab('info');
+            document.getElementById('details-modal').classList.remove('hidden');
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('details-modal').classList.add('hidden');
+        }
+
+        function switchDetailsTab(tab) {
+            if(tab === 'info') {
+                document.getElementById('d-view-info').classList.remove('hidden');
+                document.getElementById('d-view-history').classList.add('hidden');
+                document.getElementById('d-tab-info').className = "flex-1 py-3 text-emerald-700 font-bold border-b-2 border-emerald-600";
+                document.getElementById('d-tab-history').className = "flex-1 py-3 text-gray-500 font-bold border-b-2 border-transparent";
+            } else {
+                document.getElementById('d-view-info').classList.add('hidden');
+                document.getElementById('d-view-history').classList.remove('hidden');
+                document.getElementById('d-tab-history').className = "flex-1 py-3 text-emerald-700 font-bold border-b-2 border-emerald-600";
+                document.getElementById('d-tab-info').className = "flex-1 py-3 text-gray-500 font-bold border-b-2 border-transparent";
+            }
+        }
+    </script>
+</body>
+</html>
